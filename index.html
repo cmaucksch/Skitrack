@@ -1,0 +1,341 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Ski Tracker</title>
+<meta name="apple-mobile-web-app-capable" content="yes">
+<style>
+:root{
+  --bg:linear-gradient(to top,#1f1f1f,#000000);
+  --card:#1e1e1e;
+  --text:#f2f2f7;
+  --subtle:#8e8e93;
+  --accent:#007aff;
+  --service:#5a5a5e;
+  --export:#34c759;
+  --reset:#b91c2c;
+  --plus:#34c759;
+  --minus:#c62a3a;
+  --import:#ffcc00;
+  --glow:0 0 8px rgba(0,122,255,.2);
+}
+*{
+  box-sizing:border-box;margin:0;padding:0;
+}
+body{
+  font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+  background:var(--bg);color:var(--text);padding:16px;-webkit-user-select:none;user-select:none;
+}
+h1{font-size:32px;font-weight:700;margin:8px 0 20px;letter-spacing:-.4px}
+.card{
+  background:var(--card);border-radius:4px;padding:14px;margin-bottom:12px;
+  box-shadow:var(--glow),0 4px 12px rgba(0,0,0,.35);position:relative;
+}
+.card.add{
+  display:flex;align-items:center;justify-content:center;font-size:18px;font-weight:600;
+  cursor:pointer;background:linear-gradient(135deg,#000 0%,#222 100%);color:var(--accent);
+  border:1px solid var(--accent);
+}
+.top-x{
+  position:absolute;top:6px;right:10px;font-size:16px;color:var(--subtle);cursor:pointer;
+}
+.color-dot{
+  width:12px;height:12px;border-radius:50%;display:inline-block;margin-right:8px;
+}
+.color-dot.white{background:#e5e5ea}.color-dot.green{background:#34c759}
+.color-dot.yellow{background:#ffcc00}.color-dot.orange{background:#ff9500}
+.color-dot.red{background:#ff3b30}
+.line{display:flex;align-items:center;margin-bottom:6px;justify-content:space-between}
+.name{font-size:20px;font-weight:600;cursor:pointer;max-width:12ch;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.count{font-size:26px;font-weight:700;color:var(--accent);margin-right:20px}
+.row{display:flex;align-items:center;gap:8px;margin-top:8px;flex-wrap:wrap}
+.hist-trigger{font-size:14px;color:var(--accent);cursor:pointer}
+.history{margin-top:8px;font-size:14px;max-height:0;overflow:hidden;transition:max-height .3s ease}
+.history.show{max-height:300px;overflow:auto}
+.history-item{display:flex;justify-content:space-between;padding:4px 0;border-bottom:1px solid var(--subtle)}
+.history-item:last-child{border:none}
+.history-date{color:var(--subtle)}
+.history-action{font-weight:600}
+.history-action.skiday{color:var(--accent)}
+.history-action.service{color:var(--subtle)}
+.actions{display:flex;gap:8px;margin-top:8px;flex-wrap:wrap}
+button{
+  border:none;border-radius:4px;padding:10px 14px;font-size:16px;font-weight:600;color:#fff;
+  box-shadow:var(--glow),0 2px 6px rgba(0,0,0,.25);cursor:pointer;
+  background:linear-gradient(135deg,#000 0%,#222 100%);
+  border:1px solid transparent;
+}
+button.plus{border-color:var(--plus)}
+button.minus{border-color:var(--minus)}
+button.service{border-color:var(--service)}
+.export-reset{display:flex;gap:12px;margin-top:24px;flex-wrap:wrap}
+.export-reset button{flex:1;border-radius:4px;background:linear-gradient(135deg,#000 0%,#222 100%);}
+.export-reset button.import{border-color:var(--import)}
+.export-reset button:first-child{border-color:var(--export)}
+.export-reset button:last-child{border-color:var(--reset)}
+.modal{
+  position:fixed;inset:0;background:rgba(0,0,0,.5);display:flex;align-items:center;justify-content:center;padding:24px;
+  opacity:0;pointer-events:none;transition:.25s;
+}
+.modal.show{opacity:1;pointer-events:auto}
+.modal-inner{
+  background:var(--card);border-radius:4px;padding:24px;width:100%;max-width:340px;
+  box-shadow:var(--glow),0 8px 24px rgba(0,0,0,.4);
+}
+.modal h3{margin-bottom:16px;font-size:22px}
+.modal input{
+  width:100%;font-size:18px;padding:12px 16px;border:1px solid var(--subtle);border-radius:4px;
+  margin-bottom:16px;background:transparent;color:var(--text);
+}
+.modal-buttons{display:flex;gap:8px;justify-content:flex-end}
+.modal-buttons button{
+  border-radius:4px;background:linear-gradient(135deg,#000 0%,#222 100%);
+  border:1px solid var(--accent);
+}
+.modal-buttons button.cancel{border-color:var(--service)}
+.wachs-modal{
+  position:fixed;inset:0;background:rgba(0,0,0,.5);display:flex;align-items:center;justify-content:center;padding:24px;
+  opacity:0;pointer-events:none;transition:.25s;
+}
+.wachs-modal.show{opacity:1;pointer-events:auto}
+.wachs-inner{
+  background:var(--card);border-radius:4px;padding:24px;width:100%;max-width:340px;
+  box-shadow:var(--glow),0 8px 24px rgba(0,0,0,.4);
+}
+.wachs-inner h3{margin-bottom:16px;font-size:22px}
+.wachs-opt{display:flex;align-items:center;gap:10px;margin-bottom:10px;font-size:16px;}
+.wachs-opt input{cursor:pointer}
+</style>
+<base target="_blank">
+</head>
+<body>
+
+<h1>Ski Tracker</h1>
+<div id="list"></div>
+<div class="export-reset">
+  <button onclick="exportCSV()">Export CSV</button>
+  <button onclick="importCSV()">Import CSV</button>
+  <button onclick="resetAll()">Alles zurücksetzen</button>
+</div>
+
+<!---------- Wachs-Auswahl-Modal ---------->
+<div id="wachsModal" class="wachs-modal">
+  <div class="wachs-inner">
+    <h3>Wachs auswählen</h3>
+    <div id="wachsOptions"></div>
+    <div class="modal-buttons">
+      <button class="cancel" onclick="closeWachsModal()">Abbrechen</button>
+      <button onclick="saveWachs()">Speichern</button>
+    </div>
+  </div>
+</div>
+
+<!---------- Name-Ändern-Modal ---------->
+<div id="modal" class="modal">
+  <div class="modal-inner">
+    <h3 id="modalTitle">Ski-Paar Name</h3>
+    <input id="modalInput" placeholder="z. B. SL1" autocomplete="off" maxlength="12">
+    <div class="modal-buttons">
+      <button class="cancel" onclick="closeModal()">Abbrechen</button>
+      <button onclick="saveModal()">Speichern</button>
+    </div>
+  </div>
+</div>
+
+<script>
+/* ---------- Daten ---------- */
+let skis = JSON.parse(localStorage.getItem('skisV14')) || [
+  {name:'SL1',count:0,lastService:0,history:[]}
+];
+
+/* ---------- Wachs-Optionen ---------- */
+const wachsOptionen = [
+  'Gelb Base','Rot Base','Blau Base',
+  'Gelb Race','Rot Race','Blau Race'
+];
+let wachsCurrentSki = null;
+
+/* ---------- Farbe ---------- */
+function colorClass(c){
+  if(c===0)return'white';if(c===1)return'green';if(c===2)return'yellow';
+  if(c===3)return'orange';return'red';
+}
+
+/* ---------- Historie rendern ---------- */
+function histHtml(s){
+  if(!s.history.length)return'<div class="history-empty" style="font-size:13px;color:var(--subtle);">Noch keine Einträge</div>';
+  return s.history.slice().reverse().map((h,ri)=>{
+    const idx=s.history.length-1-ri;
+    let wachsInfo='';
+    if(h.type==='service'&&h.wachs&&h.wachs.length){
+      wachsInfo='<br><span style="font-size:13px;color:var(--subtle);">Wachs: '+h.wachs.join(', ')+'</span>';
+    }
+    return`<div class="history-item">
+      <span class="history-date">${new Date(h.ts).toLocaleDateString('de')} ${new Date(h.ts).toLocaleTimeString('de').slice(0,5)}</span>
+      <span class="history-action ${h.type}">${h.type==='skiday'?'Skitag':'Service'}${wachsInfo}</span>
+      <span style="cursor:pointer;color:var(--minus);" onclick="delHist(${idx})">Löschen</span>
+    </div>`;
+  }).join('');
+}
+
+/* ---------- Render ---------- */
+function render(){
+  const list=document.getElementById('list');
+  list.innerHTML='';
+  skis.forEach((s,i)=>{
+    const eff=s.count-s.lastService;
+    const card=document.createElement('div');
+    card.className='card';
+    card.innerHTML=`
+      <span class="top-x" onclick="deleteSki(${i})">✕</span>
+      <div class="line">
+        <div class="color-dot ${colorClass(eff)}"></div>
+        <div class="name" onclick="editName(${i})">${s.name}</div>
+        <div class="count">${s.count}</div>
+      </div>
+      <div class="row">
+        <div class="hist-trigger" onclick="toggleHist(${i})">Historie</div>
+      </div>
+      <div class="history" id="hist-${i}">${histHtml(s)}</div>
+      <div class="actions">
+        <button class="plus" onclick="inc(${i})">+</button>
+        <button class="minus" onclick="decLastSkiDay(${i})">−</button>
+        <button class="service" onclick="openWachsModal(${i})">Service</button>
+      </div>`;
+    list.appendChild(card);
+  });
+  const add=document.createElement('div');
+  add.className='card add';
+  add.textContent='Neues Paar';
+  add.onclick=()=>addSki();
+  list.appendChild(add);
+}
+
+/* ---------- Historie Toggle ---------- */
+let openHistIdx = null;
+function toggleHist(i){
+  const h=document.getElementById(`hist-${i}`);
+  const isOpen = h.classList.contains('show');
+  document.querySelectorAll('.history').forEach(el=>el.classList.remove('show'));
+  if(!isOpen){
+    h.classList.add('show');
+    openHistIdx = i;
+  }else{
+    openHistIdx = null;
+  }
+}
+
+/* ---------- CRUD ---------- */
+function inc(i){skis[i].count++;skis[i].history.push({type:'skiday',ts:Date.now()});save();render();}
+
+/* ---------- Minus: letzter Skitag rückgängig ---------- */
+function decLastSkiDay(i){
+  const hist=skis[i].history;
+  const lastIdx=hist.map((h,idx)=>h.type==='skiday'?idx:-1).filter(idx=>idx!==-1).pop();
+  if(lastIdx===undefined){alert('Kein Skitag zum Rückgängig-machen');return;}
+  hist.splice(lastIdx,1);
+  skis[i].count=Math.max(0,skis[i].count-1);
+  save();render();
+  if(openHistIdx!==null)toggleHist(openHistIdx);
+}
+
+/* ---------- Name & Delete ---------- */
+function deleteSki(i){if(confirm('Paar löschen?')){skis.splice(i,1);save();render();}}
+function addSki(){openModal(null,'Neues Paar');}
+function editName(i){openModal(i,'Name ändern');}
+
+/* ---------- Historie einzeln löschen ---------- */
+function delHist(histIdx){
+  const skiIdx=document.querySelector('.history.show').id.split('-')[1];
+  if(confirm('Eintrag löschen?')){
+    skis[skiIdx].history.splice(histIdx,1);
+    save();
+    render();
+    if(openHistIdx !== null) toggleHist(openHistIdx);
+  }
+}
+
+/* ---------- CSV-Export ---------- */
+function exportCSV(){
+  let csv='Ski-Paar;Datum;Uhrzeit;Aktion;Wachs\n';
+  skis.forEach(s=>s.history.forEach(h=>{
+    const d=new Date(h.ts);
+    const wachs = h.type==='service'&&h.wachs&&h.wachs.length ? h.wachs.join(', ') : '';
+    csv+=`${s.name};${d.toLocaleDateString('de')};${d.toLocaleTimeString('de').slice(0,5)};${h.type==='skiday'?'Skitag':'Service'};${wachs}\n`;
+  }));
+  csv+='\nZusammenfassung\nSki-Paar;Gesamt;Seit Service\n';
+  skis.forEach(s=>csv+=`${s.name};${s.count};${s.count-s.lastService}\n`);
+  const blob=new Blob(['\ufeff'+csv],{type:'text/csv'});
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(blob);
+  a.download=`Ski_Tracker_${new Date().toISOString().slice(0,10)}.csv`;
+  a.click();
+}
+
+/* ---------- CSV-Import ---------- */
+function importCSV(){
+  const input=document.createElement('input');
+  input.type='file';
+  input.accept='.csv';
+  input.onchange=async e=>{
+    const file=e.target.files[0];
+    if(!file)return;
+    const text=await file.text();
+    const lines=text.split('\n').filter(l=>l.trim()&& !l.startsWith('Zusammenfassung'));
+    let impCount=0,skipCount=0;
+    for(const ln of lines){
+      const p=ln.split(';');
+      if(p.length<4||p[0]==='Ski-Paar')continue;
+      const name=p[0];
+      const date=p[1];
+      const time=p[2];
+      const act=p[3];
+      const wachs=p[4] ? p[4].split(', ').filter(Boolean) : [];
+      const ts=new Date(date.split('.').reverse().join('-')+'T'+time);
+      if(isNaN(ts))continue;
+      // Duplikat-Check (gleicher Name + Zeitstempel)
+      const exists=skis.some(s=>s.history.some(h=>h.ts===ts.valueOf()&&s.name===name));
+      if(exists){skipCount++;continue;}
+      // Ski finden oder anlegen
+      let ski=skis.find(s=>s.name===name);
+      if(!ski){
+        ski={name:name,count:0,lastService:0,history:[]};
+        skis.push(ski);
+      }
+      // Eintrag hinzufügen
+      ski.history.push({type:act==='Service'?'service':'skiday',ts:ts.valueOf(),wachs:act==='Service'?wachs:undefined});
+      if(act!=='Service')ski.count++;
+      if(act==='Service')ski.lastService=ski.count;
+      impCount++;
+    }
+    save();render();
+    alert(`Importiert: ${impCount}\nÜbersprungen (Duplikate): ${skipCount}`);
+  };
+  input.click();
+}
+
+/* ---------- normales Modal ---------- */
+let modalIdx=null;
+function openModal(idx,title){
+  modalIdx=idx;
+  document.getElementById('modalTitle').textContent=title;
+  document.getElementById('modalInput').value=idx===null?'':skis[idx].name;
+  document.getElementById('modal').classList.add('show');
+  document.getElementById('modalInput').focus();
+}
+function closeModal(){document.getElementById('modal').classList.remove('show');}
+function saveModal(){
+  const val=document.getElementById('modalInput').value.trim();
+  if(!val)return;
+  if(modalIdx===null)skis.push({name:val,count:0,lastService:0,history:[]});
+  else skis[modalIdx].name=val;
+  save();render();closeModal();
+}
+
+/* ---------- Persist ---------- */
+function save(){localStorage.setItem('skisV14',JSON.stringify(skis));}
+render();
+</script>
+</body>
+</html>
